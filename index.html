@@ -435,7 +435,7 @@ footer{margin-top:34px;text-align:center;font-size:11px;color:#6c56a8;letter-spa
         </div>
         <div class="tagpick" id="tagpick"></div>
         <div class="mlist" id="mlist"></div>
-        <button class="reset" id="resetBtn">↺ 기본 메뉴로 초기화 (내 메뉴 전체 삭제)</button>
+        <button class="reset" id="resetBtn">🗑 내 메뉴 전체 삭제</button>
       </div>
     </div>
   </section>
@@ -729,14 +729,20 @@ TAGS.forEach(tag=>{
   tagpick.appendChild(b);
 });
 function renderMenus(){
+  const mine=menus.filter(m=>m.c);
   const mc=document.getElementById("mycount");
-  if(mc) mc.textContent=menus.filter(m=>m.c).length;
+  if(mc) mc.textContent=mine.length;
   const box=document.getElementById("mlist"); box.innerHTML="";
-  const sorted=[...menus].sort((a,b)=>(b.c?1:0)-(a.c?1:0));
-  sorted.forEach(m=>{
-    const d=document.createElement("div"); d.className="mitem"+(m.c?" custom":"");
+  if(!mine.length){
+    const d=document.createElement("div"); d.className="mitem";
+    d.style.justifyContent="center"; d.style.color="var(--dim)";
+    d.textContent="아직 추가한 메뉴가 없어요. 위에서 첫 메뉴를 추가해 보세요!";
+    box.appendChild(d);
+    return;
+  }
+  mine.forEach(m=>{
+    const d=document.createElement("div"); d.className="mitem custom";
     d.innerHTML=`<span>${m.e||"🍽️"}</span><span class="nm">${esc(m.n)}</span>`
-      +(m.c?`<span class="mybadge">내 메뉴</span>`:"")
       +`<span class="tg">${m.t.join("·")}</span>`;
     const del=document.createElement("button"); del.className="del"; del.textContent="✕";
     del.onclick=()=>{ menus=menus.filter(x=>x!==m); save(); renderMenus(); };
@@ -755,8 +761,8 @@ document.getElementById("addBtn").onclick=()=>{
   tagpick.querySelectorAll(".tp").forEach(b=>b.classList.remove("on"));
 };
 document.getElementById("resetBtn").onclick=()=>{
-  if(confirm("기본 메뉴 목록으로 되돌릴까요? (직접 추가한 메뉴도 삭제됩니다)")){
-    menus=DEFAULT_MENUS.map(m=>({...m})); save(); renderMenus();
+  if(confirm("직접 추가한 메뉴를 전부 삭제할까요?")){
+    menus=menus.filter(m=>!m.c); save(); renderMenus();
   }
 };
 renderMenus();
@@ -850,10 +856,9 @@ function pointerPos(){ // continuous position of pointer in "pin units"
   const n=players.length, per=2*Math.PI/n;
   return (((-Math.PI/2 - angle)%(2*Math.PI))+2*Math.PI)%(2*Math.PI)/per;
 }
-const easeOutCubic=k=>1-Math.pow(1-k,3);
-const easeOutQuad=k=>1-(1-k)*(1-k);
-const easeInOut=k=>k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
-
+/* ── real physics: friction wheel + spring-loaded flapper vs pins ──
+   simulated at fixed 240Hz steps driven by real elapsed time (fps-independent).
+   units: p = pointer position in "segments" (pins live at integers), w = seg/s */
 spinBtn.onclick=()=>{
   if(spinning) return;
   if(players.length<2){ alert("참가자를 2명 이상 추가해 주세요!"); return; }
@@ -864,74 +869,80 @@ spinBtn.onclick=()=>{
   suspenseEl.textContent=SUS_TEXTS[0];
 
   const n=players.length, per=2*Math.PI/n;
-  const ang0=angle, p0=pointerPos();
+  const ang0=angle;
+  const pStart=pointerPos();
+  let p=pStart;
+  let w=(2.4+Math.random()*2.4)*n;      // initial angular velocity: ~4-9 revolutions total
+  const C1=0.55;                        // viscous friction (per s)
+  const C0=0.30;                        // constant (coulomb) friction, guarantees full stop
+  const DELTA=0.10;                     // pin contact zone (fraction of a segment)
+  const KSPR=260;                       // flapper spring stiffness
+  const CDAMP=6;                        // damping while flapper is bent on a pin
+  const IMP=0.15;                       // energy lost snapping past a pin
+  const DT=1/240;
+  let lastPin=Math.floor(p), wPrev=w;
+  let dangerOn=false, failsShown=0, settleT=0, simT=0, susT=0, done=false;
 
-  /* time-based timeline (fps-independent) — pointer units p (1 = one segment) */
-  const S=3000+Math.random()*600;              // fast spin
-  const C=1700+Math.random()*700;              // slow crawl to the pin
-  const T=1700;                                 // teeter on the pin & fall back
-  const travel1=(4+Math.random()*3)*n + Math.random()*n;
-  const pAfter1=p0+travel1;
-  const extraPin=Math.random()<0.35?1:0;        // sometimes clears one more pin first
-  const pEnd=Math.floor(pAfter1)+1+extraPin+0.93;   // crawl ends 93% into a segment: right AT the pin
-  const travel2=pEnd-pAfter1;
-  const finalP=Math.floor(pEnd)+0.5;            // …then falls back to segment middle
-  let lastPin=Math.floor(p0), susTimer=0, phaseNow=0;
-  const t0=performance.now();
-  let lastT=t0;
-
-  function pAt(t){ // pointer position at elapsed time t
-    if(t<S) return p0+travel1*easeOutCubic(t/S);
-    if(t<S+C) return pAfter1+travel2*easeOutQuad((t-S)/C);
-    const t2=t-S-C;
-    if(t2<T){
-      // wobble against the pin, then slide back to the middle of the segment
-      const wob=0.045*Math.sin(t2/75)*Math.exp(-t2/650);
-      const back=easeInOut(Math.max(0,(t2-T*0.42)/(T*0.58)));
-      return pEnd+wob*(1-back)+(finalP-pEnd)*back;
+  function step(dt){
+    simT+=dt; susT+=dt;
+    const frac=p-Math.floor(p);
+    const inZone=frac>1-DELTA;
+    let a=-C1*w-C0*Math.sign(w||1);
+    if(inZone){
+      const pen=frac-(1-DELTA);
+      a-=KSPR*pen;                      // spring always pushes the wheel back
+      a-=CDAMP*w;                       // rubbing damping
+      flapDeflect=Math.max(flapDeflect,(pen/DELTA)*34);
+      if(wPrev>0 && w<=0 && failsShown<3){   // couldn't push past → falls back!
+        failsShown++;
+        thump();
+        suspenseEl.textContent=failsShown===1?"😱 아깝다!! 못 넘고 밀려난다...":"🫠 다시 뒤로... 미끄러진다...";
+      }
     }
-    return finalP;
-  }
-  function frame(now){
-    const t=now-t0, dtms=now-lastT; lastT=now;
-    const p=pAt(t);
-    angle=ang0-(p-p0)*per;
+    wPrev=w;
+    w+=a*dt; p+=w*dt;
 
-    // pin crossings → tick + flapper kick
     const pin=Math.floor(p);
-    if(pin!==lastPin){
-      const speedK=Math.max(.2,Math.min(1,(pin-lastPin)*(120/Math.max(dtms,1))/8));
-      tick(0.8+speedK*0.6, 0.3+speedK*0.3);
-      flapDeflect=Math.max(flapDeflect,24+speedK*16);
+    if(pin>lastPin){                    // clicked forward past a pin
+      const k=Math.min(1,Math.abs(w)/(3*n));
+      tick(0.8+k*0.6,0.3+k*0.3);
+      flapDeflect=Math.max(flapDeflect,26+k*14);
+      w=Math.max(0,w-IMP);              // snap costs energy
       lastPin=pin;
-      if(t>=S){ thump(); }                      // heavy clunk while crawling
+    } else if(pin<lastPin){             // rolled backward under a pin
+      tick(0.55,0.28);
+      flapDeflect=Math.max(flapDeflect,18);
+      w+=IMP*0.4;                       // tiny push from the flapper snapping under
+      lastPin=pin;
     }
-    // phase transitions (text/fx)
-    if(t>=S && phaseNow<1){ phaseNow=1;
+    // settle detection: stopped outside a contact zone
+    if(Math.abs(w)<0.06 && !inZone) settleT+=dt; else settleT=0;
+    if(settleT>0.45 || simT>15) done=true;
+  }
+
+  const t0=performance.now();
+  let lastNow=t0, acc=0;
+  function frame(now){
+    let el=(now-lastNow)/1000; lastNow=now;
+    if(el>0.25) el=0.25;                // tab hiccup: don't spiral
+    acc+=el;
+    while(acc>=DT && !done){ step(DT); acc-=DT; }
+    angle=ang0-(p-pStart)*per;
+
+    // suspense text & fx driven by real speed
+    if(!dangerOn && w>0 && w<Math.max(1.9,n*0.55)){
+      dangerOn=true;
       rwrap.classList.add("danger");
       suspenseEl.classList.add("hot");
-      suspenseEl.textContent="⚡ 핀에 걸렸다...!!";
+      suspenseEl.textContent="⚡ 핀에 걸린다... 걸린다...!!";
     }
-    if(t>=S+C && phaseNow<2){ phaseNow=2;
-      suspenseEl.textContent="😱 넘어가나?! 넘어가나?!";
-    }
-    if(t>=S+C+T*0.45 && phaseNow<3){ phaseNow=3;
-      suspenseEl.textContent="🫠 아... 떨어진다...";
-      thump();
-    }
-    // flapper drag while pressed against the pin
-    if(t>=S){
-      const frac=p-Math.floor(p);
-      if(frac>0.8) flapDeflect=Math.max(flapDeflect,10+(frac-0.8)*180);
-    }
-    susTimer+=dtms;
-    if(t<S && susTimer>650){ susTimer=0; suspenseEl.textContent=SUS_TEXTS[Math.floor(Math.random()*SUS_TEXTS.length)]; }
+    if(!dangerOn && susT>0.65){ susT=0; suspenseEl.textContent=SUS_TEXTS[Math.floor(Math.random()*SUS_TEXTS.length)]; }
 
-    flapDeflect*=Math.pow(0.86,Math.min(dtms/16.666,3));
+    flapDeflect*=Math.pow(0.86,Math.min(el*60,3));
     flapper.style.transform=`translateX(-50%) rotate(${-flapDeflect}deg)`;
     drawWheel();
 
-    if(t<S+C+T){ requestAnimationFrame(frame); return; }
+    if(!done){ requestAnimationFrame(frame); return; }
 
     // ── result ──
     rwrap.classList.remove("danger");
