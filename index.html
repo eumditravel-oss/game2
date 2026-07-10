@@ -446,7 +446,6 @@ footer{margin-top:34px;text-align:center;font-size:11px;color:#6c56a8;letter-spa
           <input id="newName" maxlength="14" placeholder="새 메뉴 이름 (예: 회사앞 김치찜)">
           <button class="abtn" id="addBtn">추가</button>
         </div>
-        <div class="tagpick" id="tagpick"></div>
         <div class="mlist" id="mlist"></div>
         <button class="reset" id="resetBtn">🗑 내 메뉴 전체 삭제</button>
       </aside>
@@ -630,11 +629,13 @@ document.querySelectorAll(".tab").forEach(t=>{
 let curTag="아무거나";
 const CHIP_EMOJI={"아무거나":"🍀","한식":"🍚","중식":"🥟","일식":"🍣","양식":"🍕","분식":"🍢","면":"🍜","밥":"🍚","고기":"🍖","국물":"🥣","매운맛":"🌶️","가볍게":"🥗",[MY]:"✏️"};
 const chipsEl=document.getElementById("chips");
-["아무거나",...TAGS,"계절"].forEach(tag=>{
+const SEASON_LIST=["봄","여름","가을","겨울"];
+["아무거나",...TAGS,...SEASON_LIST].forEach(tag=>{
+  const isSeason=SEASON_LIST.includes(tag);
   const b=document.createElement("button");
-  b.className="chip"+(tag===curTag?" on":"")+(tag==="계절"?" mine":"");
-  b.textContent=tag==="계절"
-    ? SEASON_EMOJI[SEASON]+" 계절("+SEASON+")"
+  b.className="chip"+(tag===curTag?" on":"")+(isSeason?" mine":"");
+  b.textContent=isSeason
+    ? SEASON_EMOJI[tag]+" "+tag+(tag===SEASON?" (제철!)":"")
     : (CHIP_EMOJI[tag]||"")+" "+tag;
   b.onclick=()=>{
     curTag=tag;
@@ -684,7 +685,6 @@ let lastPick=null, spinning=false, lastGrab=null;
 
 function catPool(){
   if(curTag==="아무거나") return menus;
-  if(curTag==="계절") return menus.filter(m=>m.t.includes(SEASON));
   return menus.filter(m=>m.t.includes(curTag));
 }
 function myPool(){ return menus.filter(m=>m.c); }
@@ -718,7 +718,7 @@ function setupMachine(machineEl, poolFn, opts){
         document.getElementById("playcnt").textContent=playCnt;
         fanfare();
         showResult(opts.label, pick.e||"🍽️", pick.n,
-          (pick.c?"✏️ 내 메뉴 · ":"")+pick.t.join(" · "), "gacha");
+          [pick.c?"✏️ 내 메뉴":"", ...pick.t].filter(Boolean).join(" · "), "gacha");
         grabBtn.disabled=false;
       },800);
     },1100);
@@ -764,14 +764,6 @@ overlay.onclick=e=>{ if(e.target===overlay) overlay.classList.remove("on"); };
 const mngBox=document.getElementById("mngBox");
 document.getElementById("mngToggle").onclick=()=>mngBox.classList.toggle("on");
 document.getElementById("mngClose").onclick=()=>mngBox.classList.remove("on");
-const tagpick=document.getElementById("tagpick");
-let newTags=new Set();
-[...TAGS,"봄","여름","가을","겨울"].forEach(tag=>{
-  const b=document.createElement("button");
-  b.className="tp"; b.textContent=tag;
-  b.onclick=()=>{ newTags.has(tag)?newTags.delete(tag):newTags.add(tag); b.classList.toggle("on"); };
-  tagpick.appendChild(b);
-});
 function renderMenus(){
   const mine=menus.filter(m=>m.c);
   const mc=document.getElementById("mycount");
@@ -786,8 +778,7 @@ function renderMenus(){
   }
   mine.forEach(m=>{
     const d=document.createElement("div"); d.className="mitem custom";
-    d.innerHTML=`<span>${m.e||"🍽️"}</span><span class="nm">${esc(m.n)}</span>`
-      +`<span class="tg">${m.t.join("·")}</span>`;
+    d.innerHTML=`<span>${m.e||"🍽️"}</span><span class="nm">${esc(m.n)}</span>`;
     const del=document.createElement("button"); del.className="del"; del.textContent="✕";
     del.onclick=()=>{
       menus=menus.filter(x=>x!==m);
@@ -803,10 +794,9 @@ document.getElementById("addBtn").onclick=()=>{
   const n=inp.value.trim();
   if(!n) return;
   if(menus.some(m=>m.c && m.n===n)){ alert("이미 추가한 메뉴예요!"); return; }
-  menus.push({n, e:"🍽️", t:newTags.size?[...newTags]:["밥"], c:true});
+  menus.push({n, e:"🍽️", t:[], c:true});
   save(); renderMenus();
-  inp.value=""; newTags.clear();
-  tagpick.querySelectorAll(".tp").forEach(b=>b.classList.remove("on"));
+  inp.value="";
 };
 document.getElementById("resetBtn").onclick=()=>{
   if(confirm("직접 추가한 메뉴를 전부 삭제할까요?")){
