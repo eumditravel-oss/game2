@@ -57,9 +57,9 @@ body.shake{animation:screenshake .4s}
 .dateline{text-align:center;font-size:12px;color:var(--cyan);margin-top:6px;opacity:.85}
 
 /* ── tabs ─────────────────────────── */
-.tabs{display:flex;gap:10px;margin:20px 0 4px}
+.tabs{display:flex;gap:8px;margin:20px 0 4px}
 .tab{
-  flex:1;font-family:var(--px);font-size:15px;padding:11px 0;cursor:pointer;
+  flex:1;font-family:var(--px);font-size:13px;padding:11px 0;cursor:pointer;
   background:var(--panel);color:var(--dim);
   border:2px solid #4a2f96;border-radius:10px;
   box-shadow:0 3px 0 #150a38;transition:all .15s;
@@ -382,7 +382,8 @@ footer{margin-top:34px;text-align:center;font-size:11px;color:#6c56a8;letter-spa
   <p class="dateline" id="dateline"></p>
 
   <div class="tabs">
-    <button class="tab on" data-page="gacha">🍚 메뉴 뽑기</button>
+    <button class="tab on" data-page="gacha">🍚 카테고리 뽑기</button>
+    <button class="tab" data-page="mymenu">✏️ 메뉴 뽑기</button>
     <button class="tab" data-page="bet">🎯 내기 룰렛</button>
   </div>
 
@@ -417,12 +418,19 @@ footer{margin-top:34px;text-align:center;font-size:11px;color:#6c56a8;letter-spa
       <div class="legs"><i></i><i></i></div>
     </div>
     <div class="coins">COINS <span class="c">🪙</span><span class="c" style="animation-delay:.3s">🪙</span><span class="c" style="animation-delay:.6s">🪙</span> · 오늘 <span id="playcnt">0</span>번 뽑았어요</div>
+  </section>
+
+  <!-- ══════════ MY MENU GACHA PAGE ══════════ -->
+  <section class="page" id="page-mymenu">
+    <p class="seclabel">MY MENU GACHA</p>
+    <p class="hint" style="margin-top:2px">기본 메뉴는 빠지고, <b style="color:var(--cyan)">직접 추가한 메뉴</b>만 캡슐에 들어갑니다!<br>후보를 <span id="mycount">0</span>개 채우고 GRAB! 하세요.</p>
+    <div id="mymachine"></div>
 
     <div class="manage">
       <button class="mng-toggle" id="mngToggle">⚙ 내 메뉴 관리 (추가/삭제) ▾</button>
       <div class="mng-box" id="mngBox">
         <div class="addrow">
-          <input id="newName" maxlength="14" placeholder="새 메뉴 이름 (예: 마라탕)">
+          <input id="newName" maxlength="14" placeholder="새 메뉴 이름 (예: 회사앞 김치찜)">
           <button class="abtn" id="addBtn">추가</button>
         </div>
         <div class="tagpick" id="tagpick"></div>
@@ -582,16 +590,11 @@ document.querySelectorAll(".tab").forEach(t=>{
 let curTag="아무거나";
 const CHIP_EMOJI={"아무거나":"🍀","한식":"🍚","중식":"🥟","일식":"🍣","양식":"🍕","분식":"🍢","면":"🍜","밥":"🍚","고기":"🍖","국물":"🥣","매운맛":"🌶️","가볍게":"🥗",[MY]:"✏️"};
 const chipsEl=document.getElementById("chips");
-["아무거나",...TAGS,MY].forEach(tag=>{
+["아무거나",...TAGS].forEach(tag=>{
   const b=document.createElement("button");
-  b.className="chip"+(tag===curTag?" on":"")+(tag===MY?" mine":"");
-  b.textContent=(CHIP_EMOJI[tag]||"")+" "+(tag===MY?"내 메뉴":tag);
+  b.className="chip"+(tag===curTag?" on":"");
+  b.textContent=(CHIP_EMOJI[tag]||"")+" "+tag;
   b.onclick=()=>{
-    if(tag===MY && !menus.some(m=>m.c)){
-      alert("아직 직접 추가한 메뉴가 없어요!\n아래 '내 메뉴 관리'에서 메뉴를 추가해 주세요.");
-      document.getElementById("mngBox").classList.add("on");
-      return;
-    }
     curTag=tag;
     document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on",c===b));
   };
@@ -599,8 +602,7 @@ const chipsEl=document.getElementById("chips");
 });
 
 /* ─────────── dome capsules + marquee ─────────── */
-const dome=document.getElementById("dome");
-function fillDome(){
+function fillDome(dome){
   dome.querySelectorAll(".cap").forEach(c=>c.remove());
   const P=[ // [x, y, size]
     [10,138,50],[58,146,46],[104,140,50],[152,146,46],[198,136,52],
@@ -621,9 +623,8 @@ function fillDome(){
     dome.appendChild(c);
   });
 }
-fillDome();
-(function marquee(){
-  const box=document.getElementById("marquee");
+function fillMarquee(box){
+  box.querySelectorAll("i").forEach(d=>d.remove());
   const cx=140, cy=200, R=146;
   for(let i=0;i<=10;i++){
     const a=Math.PI + (Math.PI*i/10);
@@ -633,50 +634,71 @@ fillDome();
     d.style.animationDelay=(i%2 ? .55 : 0)+"s";
     box.appendChild(d);
   }
-})();
+}
 
-/* ─────────── gacha ─────────── */
-const machine=document.getElementById("machine");
-const grabBtn=document.getElementById("grabBtn");
-const dropcap=document.getElementById("dropcap");
-const slot=document.getElementById("slot");
+/* ─────────── gacha (shared for both machines) ─────────── */
 const overlay=document.getElementById("overlay");
-let lastPick=null, spinning=false;
+let lastPick=null, spinning=false, lastGrab=null;
 
-function pool(){
+function catPool(){
   if(curTag==="아무거나") return menus;
-  if(curTag===MY) return menus.filter(m=>m.c);
   return menus.filter(m=>m.t.includes(curTag));
 }
-grabBtn.onclick=()=>{
-  const p=pool();
-  if(!p.length){ alert("이 카테고리에 메뉴가 없어요! 메뉴 관리에서 추가해 주세요."); return; }
-  ac();
-  grabBtn.disabled=true;
-  machine.classList.add("shaking");
-  dropcap.classList.remove("falling");
-  let n=0;
-  const shakeTicks=setInterval(()=>{ tick(.7+Math.random()*.5,.3); },110);
-  setTimeout(()=>{
-    clearInterval(shakeTicks);
-    machine.classList.remove("shaking");
-    dropcap.style.background=CAP_COLORS[Math.floor(Math.random()*CAP_COLORS.length)];
-    dropcap.classList.add("falling");
-    setTimeout(()=>{ slot.classList.add("flash"); thump(); },500);
+function myPool(){ return menus.filter(m=>m.c); }
+
+function setupMachine(machineEl, poolFn, opts){
+  fillDome(machineEl.querySelector(".dome"));
+  fillMarquee(machineEl.querySelector(".marquee"));
+  const grabBtn=machineEl.querySelector(".grab");
+  const dropcap=machineEl.querySelector(".drop");
+  const slot=machineEl.querySelector(".slot");
+  grabBtn.onclick=()=>{
+    const p=poolFn();
+    if(!p.length){ alert(opts.emptyMsg); if(opts.onEmpty) opts.onEmpty(); return; }
+    ac();
+    grabBtn.disabled=true; lastGrab=grabBtn;
+    machineEl.classList.add("shaking");
+    dropcap.classList.remove("falling");
+    const shakeTicks=setInterval(()=>{ tick(.7+Math.random()*.5,.3); },110);
     setTimeout(()=>{
-      slot.classList.remove("flash");
-      let pick=p[Math.floor(Math.random()*p.length)];
-      if(p.length>1 && lastPick && pick.n===lastPick){ pick=p[Math.floor(Math.random()*p.length)]; }
-      lastPick=pick.n;
-      playCnt++; localStorage.setItem(LS_CNT,playCnt);
-      document.getElementById("playcnt").textContent=playCnt;
-      fanfare();
-      showResult("TODAY'S MENU", pick.e||"🍽️", pick.n,
-        (pick.c?"✏️ 내 메뉴 · ":"")+pick.t.join(" · "), "gacha");
-      grabBtn.disabled=false;
-    },800);
-  },1100);
-};
+      clearInterval(shakeTicks);
+      machineEl.classList.remove("shaking");
+      dropcap.style.background=CAP_COLORS[Math.floor(Math.random()*CAP_COLORS.length)];
+      dropcap.classList.add("falling");
+      setTimeout(()=>{ slot.classList.add("flash"); thump(); },500);
+      setTimeout(()=>{
+        slot.classList.remove("flash");
+        let pick=p[Math.floor(Math.random()*p.length)];
+        if(p.length>1 && lastPick && pick.n===lastPick){ pick=p[Math.floor(Math.random()*p.length)]; }
+        lastPick=pick.n;
+        playCnt++; localStorage.setItem(LS_CNT,playCnt);
+        document.getElementById("playcnt").textContent=playCnt;
+        fanfare();
+        showResult(opts.label, pick.e||"🍽️", pick.n,
+          (pick.c?"✏️ 내 메뉴 · ":"")+pick.t.join(" · "), "gacha");
+        grabBtn.disabled=false;
+      },800);
+    },1100);
+  };
+}
+
+/* build the second machine (my-menu page) as a clone */
+const machine1=document.getElementById("machine");
+const machine2=machine1.cloneNode(true);
+machine2.querySelectorAll("[id]").forEach(e=>e.removeAttribute("id"));
+machine2.id="machine2";
+machine2.querySelector(".topsign").innerHTML='<span class="blb"></span>MY MENU<span class="blb"></span>';
+document.getElementById("mymachine").appendChild(machine2);
+
+setupMachine(machine1, catPool, {
+  label:"TODAY'S MENU",
+  emptyMsg:"이 카테고리에 메뉴가 없어요! '메뉴 뽑기' 탭에서 메뉴를 추가해 주세요."
+});
+setupMachine(machine2, myPool, {
+  label:"MY MENU PICK",
+  emptyMsg:"아직 직접 추가한 메뉴가 없어요!\n아래 '내 메뉴 관리'에서 후보를 추가해 주세요.",
+  onEmpty:()=>document.getElementById("mngBox").classList.add("on")
+});
 
 /* ─────────── result modal ─────────── */
 let resultFrom="gacha";
@@ -691,7 +713,7 @@ function showResult(label,emoji,name,tags,from){
 document.getElementById("okBtn").onclick=()=>overlay.classList.remove("on");
 document.getElementById("againBtn").onclick=()=>{
   overlay.classList.remove("on");
-  setTimeout(()=>{ resultFrom==="gacha" ? grabBtn.click() : spinBtn.click(); },150);
+  setTimeout(()=>{ resultFrom==="gacha" ? (lastGrab&&lastGrab.click()) : spinBtn.click(); },150);
 };
 overlay.onclick=e=>{ if(e.target===overlay) overlay.classList.remove("on"); };
 
@@ -707,6 +729,8 @@ TAGS.forEach(tag=>{
   tagpick.appendChild(b);
 });
 function renderMenus(){
+  const mc=document.getElementById("mycount");
+  if(mc) mc.textContent=menus.filter(m=>m.c).length;
   const box=document.getElementById("mlist"); box.innerHTML="";
   const sorted=[...menus].sort((a,b)=>(b.c?1:0)-(a.c?1:0));
   sorted.forEach(m=>{
