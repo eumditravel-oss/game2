@@ -826,6 +826,10 @@ function pointerPos(){ // continuous position of pointer in "pin units"
   const n=players.length, per=2*Math.PI/n;
   return (((-Math.PI/2 - angle)%(2*Math.PI))+2*Math.PI)%(2*Math.PI)/per;
 }
+const easeOutCubic=k=>1-Math.pow(1-k,3);
+const easeOutQuad=k=>1-(1-k)*(1-k);
+const easeInOut=k=>k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+
 spinBtn.onclick=()=>{
   if(spinning) return;
   if(players.length<2){ alert("참가자를 2명 이상 추가해 주세요!"); return; }
@@ -836,96 +840,74 @@ spinBtn.onclick=()=>{
   suspenseEl.textContent=SUS_TEXTS[0];
 
   const n=players.length, per=2*Math.PI/n;
-  let v = 0.42 + Math.random()*0.12;      // rad/frame @60fps — fast!
-  let phase="spin";                        // spin -> crawl -> teeter -> done
-  let lastPin=Math.floor(pointerPos());
-  let crawlSteps = 0;
-  let teeterDir=1, teeterAmp=0, teeterT=0, settleTarget=0;
-  let susTimer=0, hotShown=false;
-  let last=performance.now();
+  const ang0=angle, p0=pointerPos();
 
-  function crossPins(){
-    const cur=pointerPos();
-    const curPin=Math.floor(cur);
-    if(curPin!==lastPin){
-      const speedK=Math.min(1,v/0.4);
-      tick(0.8+speedK*0.6, 0.35+speedK*0.3);
-      flapDeflect = 26 + speedK*14;      // flapper kicks
-      lastPin=curPin;
-      return true;
+  /* time-based timeline (fps-independent) — pointer units p (1 = one segment) */
+  const S=3000+Math.random()*600;              // fast spin
+  const C=1700+Math.random()*700;              // slow crawl to the pin
+  const T=1700;                                 // teeter on the pin & fall back
+  const travel1=(4+Math.random()*3)*n + Math.random()*n;
+  const pAfter1=p0+travel1;
+  const extraPin=Math.random()<0.35?1:0;        // sometimes clears one more pin first
+  const pEnd=Math.floor(pAfter1)+1+extraPin+0.93;   // crawl ends 93% into a segment: right AT the pin
+  const travel2=pEnd-pAfter1;
+  const finalP=Math.floor(pEnd)+0.5;            // …then falls back to segment middle
+  let lastPin=Math.floor(p0), susTimer=0, phaseNow=0;
+  const t0=performance.now();
+  let lastT=t0;
+
+  function pAt(t){ // pointer position at elapsed time t
+    if(t<S) return p0+travel1*easeOutCubic(t/S);
+    if(t<S+C) return pAfter1+travel2*easeOutQuad((t-S)/C);
+    const t2=t-S-C;
+    if(t2<T){
+      // wobble against the pin, then slide back to the middle of the segment
+      const wob=0.045*Math.sin(t2/75)*Math.exp(-t2/650);
+      const back=easeInOut(Math.max(0,(t2-T*0.42)/(T*0.58)));
+      return pEnd+wob*(1-back)+(finalP-pEnd)*back;
     }
-    return false;
+    return finalP;
   }
-  function frame(t){
-    const dt=Math.min((t-last)/16.666,3); last=t;
-    susTimer+=dt;
-    if(phase==="spin"){
-      angle+=v*dt;
-      v*=Math.pow(0.988,dt);              // friction
-      crossPins();
-      if(susTimer>40){ susTimer=0; suspenseEl.textContent=SUS_TEXTS[Math.floor(Math.random()*SUS_TEXTS.length)]; }
-      if(v<0.055){
-        phase="crawl";
-        crawlSteps = 1+Math.floor(Math.random()*2);  // 1~2 more pins to (maybe) pass
-        rwrap.classList.add("danger");
-        suspenseEl.classList.add("hot");
-        suspenseEl.textContent="⚡ 핀에 걸렸다...!!";
-        hotShown=true;
-      }
+  function frame(now){
+    const t=now-t0, dtms=now-lastT; lastT=now;
+    const p=pAt(t);
+    angle=ang0-(p-p0)*per;
+
+    // pin crossings → tick + flapper kick
+    const pin=Math.floor(p);
+    if(pin!==lastPin){
+      const speedK=Math.max(.2,Math.min(1,(pin-lastPin)*(120/Math.max(dtms,1))/8));
+      tick(0.8+speedK*0.6, 0.3+speedK*0.3);
+      flapDeflect=Math.max(flapDeflect,24+speedK*16);
+      lastPin=pin;
+      if(t>=S){ thump(); }                      // heavy clunk while crawling
     }
-    else if(phase==="crawl"){
-      // painfully slow, flapper drags on pins
-      angle+=Math.max(0.006, v)*dt;
-      v*=Math.pow(0.965,dt);
-      // distance of pointer past last pin (0~1 within segment)
-      const frac=pointerPos()-Math.floor(pointerPos());
-      // when approaching next pin (frac→1), resist
-      if(frac>0.82){
-        flapDeflect=Math.max(flapDeflect, 30+(frac-0.82)*160); // flapper bends hard
-        if(crossPins()){
-          thump();
-          crawlSteps--;
-          v=0.02+Math.random()*0.015;    // little pop of energy after clearing pin
-          if(crawlSteps<0) crawlSteps=0;
-        }
-        if(crawlSteps===0 && frac>0.90 && frac<0.985){
-          // THE CLIFFHANGER: not enough energy — teeter on the pin, fall back!
-          phase="teeter";
-          teeterT=0; teeterAmp=(0.98-frac);
-          settleTarget=Math.floor(pointerPos())+0.5; // middle of current segment... after falling back
-          suspenseEl.textContent="😱 넘어가나?! 넘어가나?!";
-        }
-      } else {
-        if(crawlSteps===0 && v<0.008){
-          phase="teeter"; teeterT=0; teeterAmp=0.04;
-          settleTarget=Math.floor(pointerPos())+0.5;
-          suspenseEl.textContent="😱 멈춘다 멈춘다...";
-        }
-      }
+    // phase transitions (text/fx)
+    if(t>=S && phaseNow<1){ phaseNow=1;
+      rwrap.classList.add("danger");
+      suspenseEl.classList.add("hot");
+      suspenseEl.textContent="⚡ 핀에 걸렸다...!!";
     }
-    else if(phase==="teeter"){
-      // rock back and forth against the pin, then settle backwards
-      teeterT+=dt;
-      const per2=per;
-      const decay=Math.exp(-teeterT/26);
-      const wobble=Math.sin(teeterT/4.2)*teeterAmp*decay*per2;
-      angle-=wobble*0.10*dt;              // net drift backward (falls off the pin)
-      flapDeflect=Math.max(flapDeflect, Math.abs(Math.sin(teeterT/4.2))*24*decay);
-      if(teeterT>2) { if(Math.floor(teeterT)%14===0 && Math.random()<.2) tick(.6,.25); }
-      if(decay<0.06){
-        // settle to center of the segment currently under pointer
-        const cur=pointerPos();
-        const target=Math.floor(cur)+0.5;
-        angle-=(target-cur)*per2;         // snap pointer to segment middle
-        phase="done";
-      }
+    if(t>=S+C && phaseNow<2){ phaseNow=2;
+      suspenseEl.textContent="😱 넘어가나?! 넘어가나?!";
     }
-    // flapper render
-    flapDeflect*=Math.pow(0.86,dt);
+    if(t>=S+C+T*0.45 && phaseNow<3){ phaseNow=3;
+      suspenseEl.textContent="🫠 아... 떨어진다...";
+      thump();
+    }
+    // flapper drag while pressed against the pin
+    if(t>=S){
+      const frac=p-Math.floor(p);
+      if(frac>0.8) flapDeflect=Math.max(flapDeflect,10+(frac-0.8)*180);
+    }
+    susTimer+=dtms;
+    if(t<S && susTimer>650){ susTimer=0; suspenseEl.textContent=SUS_TEXTS[Math.floor(Math.random()*SUS_TEXTS.length)]; }
+
+    flapDeflect*=Math.pow(0.86,Math.min(dtms/16.666,3));
     flapper.style.transform=`translateX(-50%) rotate(${-flapDeflect}deg)`;
     drawWheel();
 
-    if(phase!=="done"){ requestAnimationFrame(frame); return; }
+    if(t<S+C+T){ requestAnimationFrame(frame); return; }
 
     // ── result ──
     rwrap.classList.remove("danger");
