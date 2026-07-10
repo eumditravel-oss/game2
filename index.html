@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SUPER LUNCH GACHA · 오늘 뭐 먹지?</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@latest/dist/galmuri.css">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#1b1140; --bg2:#241457; --panel:#2c1a66;
+  --pink:#ff5fa8; --pink-soft:#f7a8c8; --pink-deep:#e8558f;
+  --cyan:#5ffcf1; --yellow:#ffd93b; --orange:#ff9f43;
+  --white:#fff6ff; --dim:#b9a8e8;
+  --px:"Galmuri11","Galmuri9",sans-serif;
+  --en:"Press Start 2P","Galmuri11",monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:var(--px);
+  background:
+    linear-gradient(rgba(95,252,241,.05) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(95,252,241,.05) 1px,transparent 1px),
+    radial-gradient(ellipse at 50% -10%,#3b2180 0%,var(--bg) 60%);
+  background-size:28px 28px,28px 28px,100% 100%;
+  color:var(--white);
+  min-height:100%;
+  display:flex;flex-direction:column;align-items:center;
+  padding:18px 14px 48px;
+  overflow-x:hidden;
+}
+.wrap{width:100%;max-width:430px}
+
+/* ── header ───────────────────────── */
+.title{
+  font-family:var(--en);
+  text-align:center;font-size:26px;line-height:1.35;
+  color:var(--pink);
+  text-shadow:0 0 6px var(--pink),0 0 18px var(--pink),0 0 42px #ff2d8d,2px 2px 0 #7a0f4b;
+  animation:flicker 3.2s infinite;
+  letter-spacing:1px;
+}
+.title .cy{color:var(--cyan);text-shadow:0 0 6px var(--cyan),0 0 18px var(--cyan),2px 2px 0 #0b6d66}
+@keyframes flicker{
+  0%,18%,22%,25%,53%,57%,100%{opacity:1}
+  20%,24%,55%{opacity:.45}
+}
+.sub{
+  text-align:center;color:var(--dim);font-size:14px;margin-top:12px;letter-spacing:.5px;
+}
+.sub b{color:var(--yellow);font-weight:normal}
+.dateline{
+  text-align:center;font-size:12px;color:var(--cyan);margin-top:6px;opacity:.85;
+}
+
+/* ── tabs ─────────────────────────── */
+.tabs{display:flex;gap:10px;margin:20px 0 4px}
+.tab{
+  flex:1;font-family:var(--px);font-size:15px;padding:11px 0;cursor:pointer;
+  background:var(--panel);color:var(--dim);
+  border:2px solid #4a2f96;border-radius:10px;
+  box-shadow:0 3px 0 #150a38;
+  transition:all .15s;
+}
+.tab.on{
+  background:linear-gradient(180deg,#ff77b5,#ff4d9c);color:#fff;
+  border-color:#ffb3d6;box-shadow:0 0 14px rgba(255,95,168,.55),0 3px 0 #a3175f;
+  text-shadow:1px 1px 0 #b1276b;
+}
+.page{display:none}
+.page.on{display:block;animation:pop .25s}
+@keyframes pop{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ── section label ────────────────── */
+.seclabel{
+  font-family:var(--en);font-size:11px;color:var(--cyan);
+  text-shadow:0 0 8px var(--cyan);text-align:center;margin:18px 0 10px;
+  letter-spacing:2px;
+}
+.seclabel::before,.seclabel::after{content:" ▸ ";color:var(--pink)}
+.seclabel::before{content:" ◂ "}
+
+/* ── chips ────────────────────────── */
+.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.chip{
+  font-family:var(--px);font-size:14px;padding:8px 14px;cursor:pointer;
+  background:#170d3a;color:var(--white);
+  border:2px solid var(--pink-deep);border-radius:8px;
+  box-shadow:0 3px 0 #7a1c4e;transition:all .12s;
+}
+.chip.on{
+  background:var(--yellow);color:#5a3a00;border-color:#fff2b0;
+  box-shadow:0 0 12px rgba(255,217,59,.7),0 3px 0 #b8930a;
+}
+.chip:active{transform:translateY(2px);box-shadow:none}
+
+/* ── gacha machine ────────────────── */
+.machine{
+  position:relative;margin:22px auto 0;width:290px;max-width:100%;
+  filter:drop-shadow(0 0 22px rgba(255,95,168,.28));
+}
+.machine .dome{
+  position:relative;height:190px;margin:0 12px;
+  background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(120,80,200,.12) 55%,rgba(20,10,50,.35));
+  border:3px solid var(--pink-soft);
+  border-radius:130px 130px 14px 14px;
+  overflow:hidden;
+}
+.dome .shine{
+  position:absolute;top:14px;left:26px;width:52px;height:26px;
+  border-radius:50%;background:rgba(255,255,255,.35);transform:rotate(-18deg);filter:blur(2px);
+}
+.lamp{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  font-size:20px;animation:lampblink 1.4s infinite;
+}
+@keyframes lampblink{0%,100%{opacity:1}50%{opacity:.3}}
+.cap{
+  position:absolute;width:46px;height:46px;border-radius:50%;
+  border:2px solid rgba(255,255,255,.55);
+  box-shadow:inset -5px -7px 0 rgba(0,0,0,.18),inset 4px 5px 0 rgba(255,255,255,.35);
+}
+.cap::after{
+  content:"";position:absolute;left:0;right:0;bottom:-1px;height:46%;
+  background:rgba(255,255,255,.85);border-radius:0 0 40px 40px;
+}
+.machine.shaking .cap{animation:jiggle .18s infinite}
+@keyframes jiggle{
+  0%{transform:translate(0,0) rotate(0)}
+  25%{transform:translate(-4px,-7px) rotate(-9deg)}
+  50%{transform:translate(3px,2px) rotate(6deg)}
+  75%{transform:translate(-2px,-4px) rotate(-4deg)}
+  100%{transform:translate(4px,0) rotate(8deg)}
+}
+.body{
+  position:relative;margin-top:-4px;padding:16px 18px 20px;
+  background:linear-gradient(180deg,#f9b3cd,#f186b2);
+  border:3px solid #ffd7e8;border-radius:16px;
+  box-shadow:inset 0 -8px 0 rgba(160,40,95,.25);
+}
+.slot{
+  height:54px;border-radius:10px;margin-bottom:14px;
+  background:#3a1230;border:3px solid #8c2a63;
+  box-shadow:inset 0 6px 12px rgba(0,0,0,.55);
+  display:flex;align-items:center;justify-content:center;
+  overflow:hidden;position:relative;
+}
+.slot .drop{
+  width:44px;height:44px;border-radius:50%;position:absolute;top:-70px;
+}
+.slot .drop.falling{animation:fall .55s cubic-bezier(.55,0,.7,1.4) forwards}
+@keyframes fall{
+  0%{top:-70px}70%{top:5px}85%{top:0px}100%{top:5px}
+}
+.grab{
+  display:block;width:100%;padding:15px 0 13px;cursor:pointer;
+  font-family:var(--en);font-size:18px;color:#fff;
+  background:linear-gradient(180deg,#ff8ec0,#ff3d92);
+  border:3px solid #ffe0ef;border-radius:12px;
+  box-shadow:0 5px 0 #b0175f,0 0 18px rgba(255,61,146,.6);
+  text-shadow:2px 2px 0 #a3175f;letter-spacing:2px;
+  transition:all .1s;
+}
+.grab:active{transform:translateY(4px);box-shadow:0 1px 0 #b0175f}
+.grab:disabled{opacity:.55;cursor:default}
+.coins{
+  text-align:center;font-size:13px;color:var(--yellow);margin-top:12px;letter-spacing:1px;
+}
+.coins .c{display:inline-block;animation:coinspin 2.2s linear infinite}
+@keyframes coinspin{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.15)}}
+
+/* ── result modal ─────────────────── */
+.overlay{
+  position:fixed;inset:0;background:rgba(10,4,30,.82);z-index:50;
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.overlay.on{display:flex}
+.card{
+  width:100%;max-width:340px;text-align:center;
+  background:linear-gradient(180deg,#2f1b6e,#1d1050);
+  border:3px solid var(--cyan);border-radius:18px;
+  box-shadow:0 0 30px rgba(95,252,241,.4);
+  padding:26px 22px;animation:cardin .3s cubic-bezier(.2,1.6,.5,1);
+}
+@keyframes cardin{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+.card .rlabel{font-family:var(--en);font-size:10px;color:var(--cyan);letter-spacing:2px}
+.card .emoji{font-size:58px;margin:14px 0 6px;display:block;animation:bounce .6s}
+@keyframes bounce{0%{transform:translateY(-30px)}55%{transform:translateY(6px)}100%{transform:none}}
+.card .rname{
+  font-size:28px;color:var(--yellow);
+  text-shadow:0 0 12px rgba(255,217,59,.7),2px 2px 0 #7a5b00;
+  margin-bottom:6px;word-break:keep-all;
+}
+.card .rtags{font-size:13px;color:var(--dim);margin-bottom:20px}
+.card .btns{display:flex;gap:10px}
+.cbtn{
+  flex:1;padding:12px 0;font-family:var(--px);font-size:15px;cursor:pointer;border-radius:10px;
+}
+.cbtn.again{background:#170d3a;color:var(--white);border:2px solid #5a3aa8;box-shadow:0 3px 0 #12082e}
+.cbtn.ok{
+  background:linear-gradient(180deg,#67ffe f0,#37e8da);
+  background:linear-gradient(180deg,#7dfff2,#2fe0d1);color:#04443e;border:2px solid #ccfffa;
+  box-shadow:0 3px 0 #0e8478;font-weight:bold;
+}
+.cbtn:active{transform:translateY(2px);box-shadow:none}
+
+/* ── menu manage ──────────────────── */
+.manage{margin-top:26px}
+.mng-toggle{
+  width:100%;padding:11px;cursor:pointer;font-family:var(--px);font-size:14px;
+  background:transparent;color:var(--dim);border:2px dashed #5a3aa8;border-radius:10px;
+}
+.mng-box{display:none;margin-top:12px;background:rgba(20,10,50,.6);border:2px solid #4a2f96;border-radius:12px;padding:14px}
+.mng-box.on{display:block}
+.addrow{display:flex;gap:8px;margin-bottom:6px}
+.addrow input{
+  flex:1;min-width:0;padding:10px;font-family:var(--px);font-size:14px;
+  background:#12082e;color:var(--white);border:2px solid #5a3aa8;border-radius:8px;outline:none;
+}
+.addrow input:focus{border-color:var(--cyan)}
+.abtn{
+  padding:0 16px;cursor:pointer;font-family:var(--px);font-size:14px;
+  background:var(--cyan);color:#04443e;border:2px solid #ccfffa;border-radius:8px;
+  box-shadow:0 3px 0 #0e8478;
+}
+.abtn:active{transform:translateY(2px);box-shadow:none}
+.tagpick{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px}
+.tp{
+  font-size:12px;padding:5px 10px;cursor:pointer;border-radius:6px;
+  background:#12082e;color:var(--dim);border:1px solid #5a3aa8;
+}
+.tp.on{background:var(--pink);color:#fff;border-color:#ffb3d6}
+.mlist{max-height:210px;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
+.mitem{
+  display:flex;align-items:center;gap:8px;font-size:14px;
+  background:#1c0f45;border:1px solid #3d2685;border-radius:8px;padding:8px 10px;
+}
+.mitem .nm{flex:1}
+.mitem .tg{font-size:11px;color:var(--dim)}
+.del{
+  cursor:pointer;background:none;border:none;color:#ff7597;font-size:15px;font-family:var(--px);
+}
+.reset{
+  margin-top:10px;width:100%;padding:8px;font-size:12px;cursor:pointer;
+  background:none;border:1px solid #5a3aa8;color:var(--dim);border-radius:8px;
+}
+
+/* ── roulette ─────────────────────── */
+.rwrap{position:relative;width:290px;max-width:100%;margin:18px auto 0}
+.pointer{
+  position:absolute;top:-6px;left:50%;transform:translateX(-50%);z-index:5;
+  width:0;height:0;border-left:14px solid transparent;border-right:14px solid transparent;
+  border-top:24px solid var(--yellow);
+  filter:drop-shadow(0 0 8px rgba(255,217,59,.8));
+}
+canvas{display:block;width:100%;height:auto;border-radius:50%;
+  box-shadow:0 0 0 6px #f186b2,0 0 0 9px #ffd7e8,0 0 34px rgba(255,95,168,.4);
+  background:#12082e;
+}
+.spin{
+  margin:20px auto 0;display:block;width:100%;max-width:290px;padding:15px 0 13px;cursor:pointer;
+  font-family:var(--en);font-size:16px;color:#fff;letter-spacing:2px;
+  background:linear-gradient(180deg,#8f7bff,#5f3de0);
+  border:3px solid #d9d2ff;border-radius:12px;
+  box-shadow:0 5px 0 #3a2494,0 0 18px rgba(143,123,255,.6);
+  text-shadow:2px 2px 0 #3a2494;transition:all .1s;
+}
+.spin:active{transform:translateY(4px);box-shadow:0 1px 0 #3a2494}
+.spin:disabled{opacity:.55}
+.players{margin-top:18px}
+.plist{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px}
+.ptag{
+  display:flex;align-items:center;gap:6px;font-size:14px;
+  background:#1c0f45;border:2px solid var(--pink-deep);border-radius:20px;padding:6px 8px 6px 14px;
+}
+.ptag button{cursor:pointer;background:#3a1230;color:#ff9dbb;border:none;border-radius:50%;
+  width:20px;height:20px;font-family:var(--px);font-size:12px;line-height:1}
+.hint{text-align:center;font-size:12px;color:var(--dim);margin-top:14px;line-height:1.7}
+.modewrap{display:flex;gap:8px;justify-content:center;margin-top:14px}
+.mode{
+  font-size:13px;padding:7px 12px;cursor:pointer;border-radius:8px;
+  background:#170d3a;color:var(--dim);border:2px solid #4a2f96;
+}
+.mode.on{background:var(--orange);color:#5a2c00;border-color:#ffd9ad;box-shadow:0 0 10px rgba(255,159,67,.6)}
+
+footer{margin-top:34px;text-align:center;font-size:11px;color:#6c56a8;letter-spacing:1px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 class="title">SUPER<br><span class="cy">LUNCH</span> GACHA</h1>
+  <p class="sub"><b>INSERT COIN</b> TO START · 인생 최대의 고민을 해결하세요</p>
+  <p class="dateline" id="dateline"></p>
+
+  <div class="tabs">
+    <button class="tab on" data-page="gacha">🍚 메뉴 뽑기</button>
+    <button class="tab" data-page="bet">🎯 내기 룰렛</button>
+  </div>
+
+  <!-- ══════════ GACHA PAGE ══════════ -->
+  <section class="page on" id="page-gacha">
+    <p class="seclabel">CHOOSE YOUR STYLE</p>
+    <div class="chips" id="chips"></div>
+
+    <div class="machine" id="machine">
+      <div class="dome" id="dome"><div class="shine"></div><div class="lamp">💡</div></div>
+      <div class="body">
+        <div class="slot"><div class="drop" id="dropcap"></div></div>
+        <button class="grab" id="grabBtn">GRAB !</button>
+        <div class="coins">COINS <span class="c">🪙</span><span class="c" style="animation-delay:.3s">🪙</span><span class="c" style="animation-delay:.6s">🪙</span> · 오늘 <span id="playcnt">0</span>번 뽑았어요</div>
+      </div>
+    </div>
+
+    <div class="manage">
+      <button class="mng-toggle" id="mngToggle">⚙ 메뉴 관리 (추가/삭제) ▾</button>
+      <div class="mng-box" id="mngBox">
+        <div class="addrow">
+          <input id="newName" maxlength="14" placeholder="새 메뉴 이름 (예: 마라탕)">
+          <button class="abtn" id="addBtn">추가</button>
+        </div>
+        <div class="tagpick" id="tagpick"></div>
+        <div class="mlist" id="mlist"></div>
+        <button class="reset" id="resetBtn">↺ 기본 메뉴로 초기화</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ BET PAGE ══════════ -->
+  <section class="page" id="page-bet">
+    <p class="seclabel">WHO PAYS TODAY?</p>
+    <div class="players">
+      <div class="addrow">
+        <input id="pname" maxlength="10" placeholder="참가자 이름 입력">
+        <button class="abtn" id="paddBtn">참가</button>
+      </div>
+      <div class="plist" id="plist"></div>
+    </div>
+    <div class="modewrap">
+      <button class="mode on" data-mode="pay">💸 당첨자가 쏜다</button>
+      <button class="mode" data-mode="free">🍀 당첨자만 공짜</button>
+    </div>
+    <div class="rwrap">
+      <div class="pointer"></div>
+      <canvas id="wheel" width="580" height="580"></canvas>
+    </div>
+    <button class="spin" id="spinBtn">SPIN !</button>
+    <p class="hint">참가자를 2명 이상 넣고 SPIN을 누르세요.<br>결과에 절대 이의제기 금지 🤝</p>
+  </section>
+
+  <footer>ⓒ SUPER LUNCH GACHA · NO REFUNDS · 맛없어도 환불 불가</footer>
+</div>
+
+<!-- result modal -->
+<div class="overlay" id="overlay">
+  <div class="card">
+    <p class="rlabel" id="rlabel">TODAY'S MENU</p>
+    <span class="emoji" id="remoji">🍜</span>
+    <p class="rname" id="rname">-</p>
+    <p class="rtags" id="rtags"></p>
+    <div class="btns">
+      <button class="cbtn again" id="againBtn">다시!</button>
+      <button class="cbtn ok" id="okBtn">확정 ✔</button>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ─────────── data ─────────── */
+const TAGS = ["한식","중식","일식","양식","분식","면","밥","고기","국물","매운맛","가볍게"];
+const DEFAULT_MENUS = [
+  {n:"김치찌개",e:"🍲",t:["한식","국물","밥","매운맛"]},
+  {n:"된장찌개",e:"🥘",t:["한식","국물","밥"]},
+  {n:"비빔밥",e:"🍚",t:["한식","밥","가볍게"]},
+  {n:"불고기",e:"🥩",t:["한식","고기","밥"]},
+  {n:"제육볶음",e:"🐷",t:["한식","고기","밥","매운맛"]},
+  {n:"삼겹살",e:"🥓",t:["한식","고기"]},
+  {n:"국밥",e:"🍜",t:["한식","국물","밥"]},
+  {n:"냉면",e:"🧊",t:["한식","면","가볍게"]},
+  {n:"칼국수",e:"🍜",t:["한식","면","국물"]},
+  {n:"짜장면",e:"🍝",t:["중식","면"]},
+  {n:"짬뽕",e:"🍜",t:["중식","면","국물","매운맛"]},
+  {n:"탕수육",e:"🍖",t:["중식","고기"]},
+  {n:"마라탕",e:"🌶️",t:["중식","국물","매운맛","면"]},
+  {n:"볶음밥",e:"🍳",t:["중식","밥"]},
+  {n:"초밥",e:"🍣",t:["일식","밥","가볍게"]},
+  {n:"라멘",e:"🍜",t:["일식","면","국물"]},
+  {n:"돈카츠",e:"🍱",t:["일식","고기","밥"]},
+  {n:"우동",e:"🥢",t:["일식","면","국물"]},
+  {n:"규동",e:"🍚",t:["일식","밥","고기"]},
+  {n:"파스타",e:"🍝",t:["양식","면"]},
+  {n:"피자",e:"🍕",t:["양식"]},
+  {n:"햄버거",e:"🍔",t:["양식","고기"]},
+  {n:"스테이크",e:"🥩",t:["양식","고기"]},
+  {n:"샐러드",e:"🥗",t:["양식","가볍게"]},
+  {n:"샌드위치",e:"🥪",t:["양식","가볍게"]},
+  {n:"떡볶이",e:"🍢",t:["분식","매운맛"]},
+  {n:"김밥",e:"🍙",t:["분식","밥","가볍게"]},
+  {n:"라면",e:"🍜",t:["분식","면","국물","매운맛"]},
+  {n:"순대",e:"🌭",t:["분식"]},
+  {n:"쌀국수",e:"🍜",t:["면","국물","가볍게"]},
+  {n:"부대찌개",e:"🍲",t:["한식","국물","매운맛"]},
+  {n:"카레",e:"🍛",t:["밥"]},
+];
+const CAP_COLORS = ["#ff5fa8","#5ffcf1","#ffd93b","#8f7bff","#ff9f43","#7dff8e"];
+const EMOJIS = {};
+DEFAULT_MENUS.forEach(m=>EMOJIS[m.n]=m.e);
+
+/* ─────────── storage ─────────── */
+const LS_MENU="slg_menus_v1", LS_PLAYERS="slg_players_v1", LS_CNT="slg_cnt_"+new Date().toDateString();
+let menus = load(LS_MENU) || DEFAULT_MENUS.slice();
+let players = load(LS_PLAYERS) || [];
+let playCnt = Number(localStorage.getItem(LS_CNT)||0);
+function load(k){ try{const v=JSON.parse(localStorage.getItem(k));return Array.isArray(v)&&v.length?v:null}catch(e){return null} }
+function save(){ localStorage.setItem(LS_MENU,JSON.stringify(menus)); localStorage.setItem(LS_PLAYERS,JSON.stringify(players)); }
+
+/* ─────────── header date ─────────── */
+const days=["일","월","화","수","목","금","토"];
+const now=new Date();
+document.getElementById("dateline").textContent =
+  `${now.getMonth()+1}월 ${now.getDate()}일 (${days[now.getDay()]}) · 오늘의 기회는 무한대로 리셋됩니다`;
+document.getElementById("playcnt").textContent=playCnt;
+
+/* ─────────── tabs ─────────── */
+document.querySelectorAll(".tab").forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("on",x===t));
+    document.querySelectorAll(".page").forEach(p=>p.classList.toggle("on",p.id==="page-"+t.dataset.page));
+    if(t.dataset.page==="bet") drawWheel();
+  };
+});
+
+/* ─────────── chips ─────────── */
+let curTag="아무거나";
+const CHIP_EMOJI={"아무거나":"🍀","한식":"🍚","중식":"🥟","일식":"🍣","양식":"🍕","분식":"🍢","면":"🍜","밥":"🍚","고기":"🍖","국물":"🥣","매운맛":"🌶️","가볍게":"🥗"};
+const chipsEl=document.getElementById("chips");
+["아무거나",...TAGS].forEach(tag=>{
+  const b=document.createElement("button");
+  b.className="chip"+(tag===curTag?" on":"");
+  b.textContent=(CHIP_EMOJI[tag]||"")+" "+tag;
+  b.onclick=()=>{curTag=tag;document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on",c===b));};
+  chipsEl.appendChild(b);
+});
+
+/* ─────────── dome capsules ─────────── */
+const dome=document.getElementById("dome");
+function fillDome(){
+  dome.querySelectorAll(".cap").forEach(c=>c.remove());
+  const positions=[
+    [18,118],[62,128],[106,122],[150,126],[196,118],
+    [38,84],[84,88],[130,82],[176,88],
+    [60,50],[110,44],[158,52],
+  ];
+  positions.forEach((p,i)=>{
+    const c=document.createElement("div");
+    c.className="cap";
+    c.style.left=p[0]+"px"; c.style.top=p[1]+"px";
+    c.style.background=CAP_COLORS[i%CAP_COLORS.length];
+    c.style.animationDelay=(Math.random()*.2)+"s";
+    dome.appendChild(c);
+  });
+}
+fillDome();
+
+/* ─────────── gacha ─────────── */
+const machine=document.getElementById("machine");
+const grabBtn=document.getElementById("grabBtn");
+const dropcap=document.getElementById("dropcap");
+const overlay=document.getElementById("overlay");
+let lastPick=null, spinning=false;
+
+function pool(){
+  return curTag==="아무거나" ? menus : menus.filter(m=>m.t.includes(curTag));
+}
+grabBtn.onclick=()=>{
+  const p=pool();
+  if(!p.length){ alert("이 카테고리에 메뉴가 없어요! 메뉴 관리에서 추가해 주세요."); return; }
+  grabBtn.disabled=true;
+  machine.classList.add("shaking");
+  dropcap.classList.remove("falling");
+  setTimeout(()=>{
+    machine.classList.remove("shaking");
+    dropcap.style.background=CAP_COLORS[Math.floor(Math.random()*CAP_COLORS.length)];
+    dropcap.style.boxShadow="inset -5px -7px 0 rgba(0,0,0,.18), inset 4px 5px 0 rgba(255,255,255,.35)";
+    dropcap.style.border="2px solid rgba(255,255,255,.55)";
+    dropcap.classList.add("falling");
+    setTimeout(()=>{
+      let pick=p[Math.floor(Math.random()*p.length)];
+      if(p.length>1 && lastPick && pick.n===lastPick){ pick=p[Math.floor(Math.random()*p.length)]; }
+      lastPick=pick.n;
+      playCnt++; localStorage.setItem(LS_CNT,playCnt);
+      document.getElementById("playcnt").textContent=playCnt;
+      showResult("TODAY'S MENU", pick.e||"🍽️", pick.n, pick.t.join(" · "), "gacha");
+      grabBtn.disabled=false;
+    },650);
+  },900);
+};
+
+/* ─────────── result modal ─────────── */
+let resultFrom="gacha";
+function showResult(label,emoji,name,tags,from){
+  resultFrom=from;
+  document.getElementById("rlabel").textContent=label;
+  document.getElementById("remoji").textContent=emoji;
+  document.getElementById("rname").textContent=name;
+  document.getElementById("rtags").textContent=tags;
+  overlay.classList.add("on");
+}
+document.getElementById("okBtn").onclick=()=>overlay.classList.remove("on");
+document.getElementById("againBtn").onclick=()=>{
+  overlay.classList.remove("on");
+  setTimeout(()=>{ resultFrom==="gacha" ? grabBtn.click() : spinBtn.click(); },150);
+};
+overlay.onclick=e=>{ if(e.target===overlay) overlay.classList.remove("on"); };
+
+/* ─────────── menu manage ─────────── */
+const mngBox=document.getElementById("mngBox");
+document.getElementById("mngToggle").onclick=()=>mngBox.classList.toggle("on");
+const tagpick=document.getElementById("tagpick");
+let newTags=new Set();
+TAGS.forEach(tag=>{
+  const b=document.createElement("button");
+  b.className="tp"; b.textContent=tag;
+  b.onclick=()=>{ newTags.has(tag)?newTags.delete(tag):newTags.add(tag); b.classList.toggle("on"); };
+  tagpick.appendChild(b);
+});
+function renderMenus(){
+  const box=document.getElementById("mlist"); box.innerHTML="";
+  menus.forEach((m,i)=>{
+    const d=document.createElement("div"); d.className="mitem";
+    d.innerHTML=`<span>${m.e||"🍽️"}</span><span class="nm">${esc(m.n)}</span><span class="tg">${m.t.join("·")}</span>`;
+    const del=document.createElement("button"); del.className="del"; del.textContent="✕";
+    del.onclick=()=>{ menus.splice(i,1); save(); renderMenus(); };
+    d.appendChild(del); box.appendChild(d);
+  });
+}
+function esc(s){return s.replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+document.getElementById("addBtn").onclick=()=>{
+  const inp=document.getElementById("newName");
+  const n=inp.value.trim();
+  if(!n) return;
+  if(menus.some(m=>m.n===n)){ alert("이미 있는 메뉴예요!"); return; }
+  menus.push({n, e:"🍽️", t:newTags.size?[...newTags]:["밥"]});
+  save(); renderMenus();
+  inp.value=""; newTags.clear();
+  tagpick.querySelectorAll(".tp").forEach(b=>b.classList.remove("on"));
+};
+document.getElementById("resetBtn").onclick=()=>{
+  if(confirm("기본 메뉴 목록으로 되돌릴까요?")){ menus=DEFAULT_MENUS.slice(); save(); renderMenus(); }
+};
+renderMenus();
+
+/* ─────────── roulette ─────────── */
+const canvas=document.getElementById("wheel"), ctx=canvas.getContext("2d");
+const spinBtn=document.getElementById("spinBtn");
+let angle=0, betMode="pay";
+const WHEEL_COLORS=["#ff5fa8","#5f3de0","#2fe0d1","#ffd93b","#ff9f43","#8f7bff","#ff4d6d","#4dd45f"];
+
+document.querySelectorAll(".mode").forEach(b=>{
+  b.onclick=()=>{ betMode=b.dataset.mode;
+    document.querySelectorAll(".mode").forEach(x=>x.classList.toggle("on",x===b)); };
+});
+function renderPlayers(){
+  const box=document.getElementById("plist"); box.innerHTML="";
+  players.forEach((p,i)=>{
+    const d=document.createElement("div"); d.className="ptag";
+    const s=document.createElement("span"); s.textContent=p; d.appendChild(s);
+    const del=document.createElement("button"); del.textContent="✕";
+    del.onclick=()=>{ players.splice(i,1); save(); renderPlayers(); drawWheel(); };
+    d.appendChild(del); box.appendChild(d);
+  });
+  drawWheel();
+}
+document.getElementById("paddBtn").onclick=addPlayer;
+document.getElementById("pname").addEventListener("keydown",e=>{ if(e.key==="Enter") addPlayer(); });
+document.getElementById("newName").addEventListener("keydown",e=>{ if(e.key==="Enter") document.getElementById("addBtn").click(); });
+function addPlayer(){
+  const inp=document.getElementById("pname");
+  const n=inp.value.trim();
+  if(!n) return;
+  if(players.includes(n)){ alert("이미 참가한 이름이에요!"); return; }
+  if(players.length>=12){ alert("최대 12명까지!"); return; }
+  players.push(n); save(); renderPlayers(); inp.value="";
+}
+function drawWheel(){
+  const W=canvas.width, C=W/2, R=C-8;
+  ctx.clearRect(0,0,W,W);
+  const n=players.length;
+  if(n<2){
+    ctx.fillStyle="#b9a8e8";
+    ctx.font='26px Galmuri11, sans-serif';
+    ctx.textAlign="center"; ctx.textBaseline="middle";
+    ctx.fillText("참가자를 추가하세요", C, C-18);
+    ctx.font='40px sans-serif';
+    ctx.fillText("🎡", C, C+40);
+    return;
+  }
+  const per=2*Math.PI/n;
+  for(let i=0;i<n;i++){
+    const a0=angle+i*per, a1=a0+per;
+    ctx.beginPath(); ctx.moveTo(C,C); ctx.arc(C,C,R,a0,a1); ctx.closePath();
+    ctx.fillStyle=WHEEL_COLORS[i%WHEEL_COLORS.length];
+    if(n%WHEEL_COLORS.length===1 && i===n-1) ctx.fillStyle=WHEEL_COLORS[2];
+    ctx.fill();
+    ctx.strokeStyle="rgba(255,255,255,.5)"; ctx.lineWidth=3; ctx.stroke();
+    ctx.save();
+    ctx.translate(C,C); ctx.rotate(a0+per/2);
+    ctx.textAlign="right"; ctx.textBaseline="middle";
+    ctx.fillStyle="#fff"; ctx.font='bold 30px Galmuri11, sans-serif';
+    ctx.shadowColor="rgba(0,0,0,.45)"; ctx.shadowBlur=4;
+    ctx.fillText(players[i], R-24, 0);
+    ctx.restore();
+  }
+  ctx.beginPath(); ctx.arc(C,C,34,0,7);
+  ctx.fillStyle="#1b1140"; ctx.fill();
+  ctx.strokeStyle="#ffd7e8"; ctx.lineWidth=5; ctx.stroke();
+  ctx.fillStyle="#ffd93b"; ctx.font="30px sans-serif";
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText("🍀",C,C+2);
+}
+spinBtn.onclick=()=>{
+  if(spinning) return;
+  if(players.length<2){ alert("참가자를 2명 이상 추가해 주세요!"); return; }
+  spinning=true; spinBtn.disabled=true;
+  const extra=(6+Math.random()*4)*2*Math.PI;   // 6~10 rotations
+  const target=angle+extra;
+  const dur=4200, t0=performance.now();
+  function frame(t){
+    const k=Math.min((t-t0)/dur,1);
+    const ease=1-Math.pow(1-k,4);
+    angle=(target-extra)+extra*ease;
+    drawWheel();
+    if(k<1) requestAnimationFrame(frame);
+    else{
+      spinning=false; spinBtn.disabled=false;
+      const n=players.length, per=2*Math.PI/n;
+      // pointer is at -90deg (top). find segment under pointer
+      const norm=((-Math.PI/2 - angle)%(2*Math.PI)+2*Math.PI)%(2*Math.PI);
+      const idx=Math.floor(norm/per);
+      const winner=players[idx];
+      if(betMode==="pay")
+        showResult("THE CHOSEN ONE","💸",winner,"오늘 점심은 "+winner+"님이 쏩니다! 🙏","bet");
+      else
+        showResult("LUCKY WINNER","🍀",winner,winner+"님은 오늘 공짜 점심! 🎉","bet");
+    }
+  }
+  requestAnimationFrame(frame);
+};
+renderPlayers();
+</script>
+</body>
+</html>
