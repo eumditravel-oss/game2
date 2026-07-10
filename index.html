@@ -282,14 +282,28 @@ body.shake{animation:screenshake .4s}
 }
 .cbtn:active{transform:translateY(2px);box-shadow:none}
 
-/* ── menu manage ──────────────────── */
-.manage{margin-top:26px}
-.mng-toggle{
-  width:100%;padding:11px;cursor:pointer;font-family:var(--px);font-size:14px;
-  background:transparent;color:var(--dim);border:2px dashed #5a3aa8;border-radius:10px;
+/* ── menu manage : left slide panel ── */
+.sidewrap{position:relative;overflow:hidden;border-radius:14px;padding-left:34px;margin-left:-14px}
+.side-tab{
+  position:absolute;left:0;top:56px;z-index:8;cursor:pointer;
+  writing-mode:vertical-rl;text-orientation:mixed;
+  font-family:var(--px);font-size:13px;letter-spacing:3px;
+  background:linear-gradient(180deg,#7dfff2,#2fe0d1);color:#04443e;
+  border:2px solid #ccfffa;border-left:none;border-radius:0 12px 12px 0;
+  padding:16px 7px;box-shadow:0 0 12px rgba(95,252,241,.5);
 }
-.mng-box{display:none;margin-top:12px;background:rgba(20,10,50,.6);border:2px solid #4a2f96;border-radius:12px;padding:14px}
-.mng-box.on{display:block}
+.side-tab:active{transform:translateX(2px)}
+.side-panel{
+  position:absolute;top:0;bottom:0;left:0;width:88%;max-width:330px;z-index:9;
+  background:rgba(16,7,42,.97);border:2px solid var(--cyan);border-radius:14px;
+  box-shadow:0 0 26px rgba(95,252,241,.4);
+  padding:14px;overflow-y:auto;
+  transform:translateX(-110%);transition:transform .28s cubic-bezier(.2,.9,.3,1);
+}
+.side-panel.on{transform:translateX(0)}
+.sp-head{display:flex;justify-content:space-between;align-items:center;
+  font-size:14px;color:var(--cyan);margin-bottom:12px;letter-spacing:1px}
+.sp-head button{cursor:pointer;background:none;border:none;color:#ff7597;font-size:17px;font-family:var(--px)}
 .addrow{display:flex;gap:8px;margin-bottom:6px}
 .addrow input{
   flex:1;min-width:0;padding:10px;font-family:var(--px);font-size:14px;
@@ -424,11 +438,10 @@ footer{margin-top:34px;text-align:center;font-size:11px;color:#6c56a8;letter-spa
   <section class="page" id="page-mymenu">
     <p class="seclabel">MY MENU GACHA</p>
     <p class="hint" style="margin-top:2px">기본 메뉴는 빠지고, <b style="color:var(--cyan)">직접 추가한 메뉴</b>만 캡슐에 들어갑니다!<br>후보를 <span id="mycount">0</span>개 채우고 GRAB! 하세요.</p>
-    <div id="mymachine"></div>
-
-    <div class="manage">
-      <button class="mng-toggle" id="mngToggle">⚙ 내 메뉴 관리 (추가/삭제) ▾</button>
-      <div class="mng-box" id="mngBox">
+    <div class="sidewrap">
+      <button class="side-tab" id="mngToggle">⚙ 메뉴 관리</button>
+      <aside class="side-panel" id="mngBox">
+        <div class="sp-head"><span>⚙ 내 메뉴 관리</span><button id="mngClose">✕</button></div>
         <div class="addrow">
           <input id="newName" maxlength="14" placeholder="새 메뉴 이름 (예: 회사앞 김치찜)">
           <button class="abtn" id="addBtn">추가</button>
@@ -436,7 +449,8 @@ footer{margin-top:34px;text-align:center;font-size:11px;color:#6c56a8;letter-spa
         <div class="tagpick" id="tagpick"></div>
         <div class="mlist" id="mlist"></div>
         <button class="reset" id="resetBtn">🗑 내 메뉴 전체 삭제</button>
-      </div>
+      </aside>
+      <div id="mymachine"></div>
     </div>
   </section>
 
@@ -493,7 +507,7 @@ const DEFAULT_MENUS = [
   {n:"제육볶음",e:"🐷",t:["한식","고기","밥","매운맛"]},
   {n:"삼겹살",e:"🥓",t:["한식","고기"]},
   {n:"국밥",e:"🍜",t:["한식","국물","밥"]},
-  {n:"냉면",e:"🧊",t:["한식","면","가볍게"]},
+  {n:"냉면",e:"🧊",t:["한식","면","가볍게","여름"]},
   {n:"칼국수",e:"🍜",t:["한식","면","국물"]},
   {n:"짜장면",e:"🍝",t:["중식","면"]},
   {n:"짬뽕",e:"🍜",t:["중식","면","국물","매운맛"]},
@@ -516,15 +530,33 @@ const DEFAULT_MENUS = [
   {n:"라면",e:"🍜",t:["분식","면","국물","매운맛"]},
   {n:"순대",e:"🌭",t:["분식"]},
   {n:"쌀국수",e:"🍜",t:["면","국물","가볍게"]},
-  {n:"부대찌개",e:"🍲",t:["한식","국물","매운맛"]},
+  {n:"부대찌개",e:"🍲",t:["한식","국물","매운맛","겨울"]},
   {n:"카레",e:"🍛",t:["밥"]},
+  {n:"봄나물비빔밥",e:"🌸",t:["한식","밥","가볍게","봄"]},
+  {n:"주꾸미볶음",e:"🐙",t:["한식","밥","매운맛","봄"]},
+  {n:"딸기샌드위치",e:"🍓",t:["양식","가볍게","봄"]},
+  {n:"콩국수",e:"🥛",t:["한식","면","여름"]},
+  {n:"삼계탕",e:"🍗",t:["한식","국물","여름"]},
+  {n:"물회",e:"🐟",t:["국물","가볍게","여름"]},
+  {n:"냉모밀",e:"🎋",t:["일식","면","가볍게","여름"]},
+  {n:"팥빙수",e:"🍧",t:["가볍게","여름"]},
+  {n:"추어탕",e:"🍂",t:["한식","국물","가을"]},
+  {n:"꽃게탕",e:"🦀",t:["한식","국물","가을"]},
+  {n:"버섯전골",e:"🍄",t:["한식","국물","가을"]},
+  {n:"굴국밥",e:"🦪",t:["한식","국물","밥","겨울"]},
+  {n:"어묵우동",e:"🍢",t:["면","국물","겨울"]},
+  {n:"만두전골",e:"🥟",t:["국물","겨울"]},
 ];
+const SEASONS=["겨울","봄","봄","봄","여름","여름","여름","여름","가을","가을","가을","겨울"];
+const SEASON=SEASONS[new Date().getMonth()];
+const SEASON_EMOJI={"봄":"🌸","여름":"🌊","가을":"🍂","겨울":"⛄"};
 const DEFAULT_NAMES = new Set(DEFAULT_MENUS.map(m=>m.n));
 const CAP_COLORS = ["#ff5fa8","#5ffcf1","#ffd93b","#8f7bff","#ff9f43","#7dff8e"];
 
 /* ─────────── storage ─────────── */
-const LS_MENU="slg_menus_v2", LS_MENU_OLD="slg_menus_v1",
+const LS_MENU="slg_menus_v2", LS_MENU_OLD="slg_menus_v1", LS_DEL="slg_delnames_v1",
       LS_PLAYERS="slg_players_v1", LS_CNT="slg_cnt_"+new Date().toDateString();
+let delNames = loadArr(LS_DEL) || [];
 let menus = loadMenus();
 let players = loadArr(LS_PLAYERS) || [];
 let playCnt = Number(localStorage.getItem(LS_CNT)||0);
@@ -535,9 +567,17 @@ function loadMenus(){
     v = loadArr(LS_MENU_OLD);
     if(v) v.forEach(m=>{ if(!DEFAULT_NAMES.has(m.n)) m.c=true; });
   }
-  return v || DEFAULT_MENUS.map(m=>({...m}));
+  if(!v) return DEFAULT_MENUS.map(m=>({...m}));
+  // merge in new default menus added by updates (e.g. seasonal), unless user deleted them
+  const names=new Set(v.map(m=>m.n));
+  DEFAULT_MENUS.forEach(m=>{ if(!names.has(m.n) && !delNames.includes(m.n)) v.push({...m}); });
+  return v;
 }
-function save(){ localStorage.setItem(LS_MENU,JSON.stringify(menus)); localStorage.setItem(LS_PLAYERS,JSON.stringify(players)); }
+function save(){
+  localStorage.setItem(LS_MENU,JSON.stringify(menus));
+  localStorage.setItem(LS_PLAYERS,JSON.stringify(players));
+  localStorage.setItem(LS_DEL,JSON.stringify(delNames));
+}
 
 /* ─────────── sound (WebAudio) ─────────── */
 let AC=null;
@@ -590,10 +630,12 @@ document.querySelectorAll(".tab").forEach(t=>{
 let curTag="아무거나";
 const CHIP_EMOJI={"아무거나":"🍀","한식":"🍚","중식":"🥟","일식":"🍣","양식":"🍕","분식":"🍢","면":"🍜","밥":"🍚","고기":"🍖","국물":"🥣","매운맛":"🌶️","가볍게":"🥗",[MY]:"✏️"};
 const chipsEl=document.getElementById("chips");
-["아무거나",...TAGS].forEach(tag=>{
+["아무거나",...TAGS,"계절"].forEach(tag=>{
   const b=document.createElement("button");
-  b.className="chip"+(tag===curTag?" on":"");
-  b.textContent=(CHIP_EMOJI[tag]||"")+" "+tag;
+  b.className="chip"+(tag===curTag?" on":"")+(tag==="계절"?" mine":"");
+  b.textContent=tag==="계절"
+    ? SEASON_EMOJI[SEASON]+" 계절("+SEASON+")"
+    : (CHIP_EMOJI[tag]||"")+" "+tag;
   b.onclick=()=>{
     curTag=tag;
     document.querySelectorAll(".chip").forEach(c=>c.classList.toggle("on",c===b));
@@ -642,6 +684,7 @@ let lastPick=null, spinning=false, lastGrab=null;
 
 function catPool(){
   if(curTag==="아무거나") return menus;
+  if(curTag==="계절") return menus.filter(m=>m.t.includes(SEASON));
   return menus.filter(m=>m.t.includes(curTag));
 }
 function myPool(){ return menus.filter(m=>m.c); }
@@ -696,7 +739,7 @@ setupMachine(machine1, catPool, {
 });
 setupMachine(machine2, myPool, {
   label:"MY MENU PICK",
-  emptyMsg:"아직 직접 추가한 메뉴가 없어요!\n아래 '내 메뉴 관리'에서 후보를 추가해 주세요.",
+  emptyMsg:"아직 직접 추가한 메뉴가 없어요!\n왼쪽 '메뉴 관리' 탭에서 후보를 추가해 주세요.",
   onEmpty:()=>document.getElementById("mngBox").classList.add("on")
 });
 
@@ -720,9 +763,10 @@ overlay.onclick=e=>{ if(e.target===overlay) overlay.classList.remove("on"); };
 /* ─────────── menu manage ─────────── */
 const mngBox=document.getElementById("mngBox");
 document.getElementById("mngToggle").onclick=()=>mngBox.classList.toggle("on");
+document.getElementById("mngClose").onclick=()=>mngBox.classList.remove("on");
 const tagpick=document.getElementById("tagpick");
 let newTags=new Set();
-TAGS.forEach(tag=>{
+[...TAGS,"봄","여름","가을","겨울"].forEach(tag=>{
   const b=document.createElement("button");
   b.className="tp"; b.textContent=tag;
   b.onclick=()=>{ newTags.has(tag)?newTags.delete(tag):newTags.add(tag); b.classList.toggle("on"); };
@@ -745,7 +789,11 @@ function renderMenus(){
     d.innerHTML=`<span>${m.e||"🍽️"}</span><span class="nm">${esc(m.n)}</span>`
       +`<span class="tg">${m.t.join("·")}</span>`;
     const del=document.createElement("button"); del.className="del"; del.textContent="✕";
-    del.onclick=()=>{ menus=menus.filter(x=>x!==m); save(); renderMenus(); };
+    del.onclick=()=>{
+      menus=menus.filter(x=>x!==m);
+      if(!m.c && !delNames.includes(m.n)) delNames.push(m.n);
+      save(); renderMenus();
+    };
     d.appendChild(del); box.appendChild(d);
   });
 }
@@ -754,7 +802,7 @@ document.getElementById("addBtn").onclick=()=>{
   const inp=document.getElementById("newName");
   const n=inp.value.trim();
   if(!n) return;
-  if(menus.some(m=>m.n===n)){ alert("이미 있는 메뉴예요!"); return; }
+  if(menus.some(m=>m.c && m.n===n)){ alert("이미 추가한 메뉴예요!"); return; }
   menus.push({n, e:"🍽️", t:newTags.size?[...newTags]:["밥"], c:true});
   save(); renderMenus();
   inp.value=""; newTags.clear();
@@ -873,15 +921,15 @@ spinBtn.onclick=()=>{
   const pStart=pointerPos();
   let p=pStart;
   let w=(2.4+Math.random()*2.4)*n;      // initial angular velocity: ~4-9 revolutions total
-  const C1=0.55;                        // viscous friction (per s)
-  const C0=0.30;                        // constant (coulomb) friction, guarantees full stop
+  const C1=0.40;                        // viscous friction (per s) — long dramatic tail
+  const C0=0.10;                        // constant (coulomb) friction, guarantees full stop
   const DELTA=0.10;                     // pin contact zone (fraction of a segment)
   const KSPR=260;                       // flapper spring stiffness
-  const CDAMP=6;                        // damping while flapper is bent on a pin
-  const IMP=0.15;                       // energy lost snapping past a pin
+  const CDAMP=12;                       // heavy rubbing on the pin → slow-motion push
+  const IMP=0.22;                       // energy lost snapping past a pin (audible slowdown)
   const DT=1/240;
   let lastPin=Math.floor(p), wPrev=w;
-  let dangerOn=false, failsShown=0, settleT=0, simT=0, susT=0, done=false;
+  let dangerOn=false, failsShown=0, hoverOn=false, settleT=0, simT=0, susT=0, done=false;
 
   function step(dt){
     simT+=dt; susT+=dt;
@@ -893,12 +941,17 @@ spinBtn.onclick=()=>{
       a-=KSPR*pen;                      // spring always pushes the wheel back
       a-=CDAMP*w;                       // rubbing damping
       flapDeflect=Math.max(flapDeflect,(pen/DELTA)*34);
+      if(!hoverOn && w>0 && w<1.4){     // slow-motion: pushing the pin, will it make it?!
+        hoverOn=true;
+        suspenseEl.textContent="😰 넘을까?! 말까?! 넘을까?!";
+        thump();
+      }
       if(wPrev>0 && w<=0 && failsShown<3){   // couldn't push past → falls back!
         failsShown++;
         thump();
         suspenseEl.textContent=failsShown===1?"😱 아깝다!! 못 넘고 밀려난다...":"🫠 다시 뒤로... 미끄러진다...";
       }
-    }
+    } else hoverOn=false;
     wPrev=w;
     w+=a*dt; p+=w*dt;
 
@@ -917,7 +970,7 @@ spinBtn.onclick=()=>{
     }
     // settle detection: stopped outside a contact zone
     if(Math.abs(w)<0.06 && !inZone) settleT+=dt; else settleT=0;
-    if(settleT>0.45 || simT>15) done=true;
+    if(settleT>0.9 || simT>20) done=true;
   }
 
   const t0=performance.now();
@@ -946,11 +999,13 @@ spinBtn.onclick=()=>{
 
     // ── result ──
     rwrap.classList.remove("danger");
-    suspenseEl.classList.remove("hot");
-    suspenseEl.textContent="🥁 발표합니다...";
-    document.body.classList.add("shake");
-    thump();
-    setTimeout(()=>document.body.classList.remove("shake"),450);
+    suspenseEl.textContent="🥁 두구두구두구... 발표합니다...";
+    thump(); setTimeout(thump,500); setTimeout(thump,1000);
+    setTimeout(()=>{
+      suspenseEl.classList.remove("hot");
+      document.body.classList.add("shake");
+      setTimeout(()=>document.body.classList.remove("shake"),450);
+    },1400);
     setTimeout(()=>{
       const idx=Math.floor(pointerPos())%n;
       const winner=players[idx];
@@ -961,7 +1016,7 @@ spinBtn.onclick=()=>{
       else
         showResult("LUCKY WINNER","🍀",winner,winner+"님은 오늘 공짜 점심! 🎉","bet");
       spinning=false; spinBtn.disabled=false;
-    },900);
+    },1900);
   }
   requestAnimationFrame(frame);
 };
